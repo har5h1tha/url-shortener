@@ -3,42 +3,50 @@ import config from '../config/config.js'
 
 import { nanoid } from 'nanoid'
 
+import catchAsync from '../utils/catchAsync.js'
+import AppError from '../utils/AppError.js'
 
-export async function shortenUrl(req, res) {
+
+export const shortenUrl = catchAsync(async (req, res) => {
   const { url } = req.body
+  const shortCode = nanoid(7)
 
-  if (!url) return res.status(400).json({ error: 'url is required' })
-
-  // validate it's an actual URL
-    try { 
-        new URL(url)
-    } catch {
-        return res.status(400).json({ 
-            error: 'Invalid URL format'
-        })
-    }
-
-    const shortCode = nanoid(7)
-    await urlModel.create({ 
-        shortCode,
-        originalUrl: url
-        })
-
-  res.status(201).json({
-    shortUrl: `${config.BASE_URL}/${shortCode}`
+  await urlModel.create({ 
+    shortCode, 
+    originalUrl: url 
   })
-}
 
-export async function redirectUrl(req, res) {
+  res.status(201).json({ 
+    shortUrl: `${config.BASE_URL}/${shortCode}` 
+  })
+})
+
+
+export const redirectUrl = catchAsync(async (req, res) => {
   const { code } = req.params
 
   const entry = await urlModel.findOneAndUpdate(
     { shortCode: code },
-    { $inc: { clicks: 1 } },  // count every visit
-    { new: true }
+    { $inc: { clicks: 1 } },
+    { returnDocument: 'after' }
   )
 
-  if (!entry) return res.status(404).json({ error: 'URL not found' })
+  if (!entry) throw new AppError('Short URL not found', 404)
 
   res.redirect(entry.originalUrl)
-}
+})
+
+export const getStats = catchAsync(async (req, res) => {
+  const { code } = req.params
+
+  const entry = await urlModel.findOne({ shortCode: code })
+
+  if (!entry) throw new AppError('Short URL not found', 404)
+
+  res.status(200).json({
+    shortCode: entry.shortCode,
+    originalUrl: entry.originalUrl,
+    clicks: entry.clicks,
+    createdAt: entry.createdAt
+  })
+})

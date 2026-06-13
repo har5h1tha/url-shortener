@@ -1,7 +1,6 @@
 import express from 'express';
-import dotenv from 'dotenv';
-import connectDB from './config/db.js';
 import urlRouter from './routers/url.router.js';
+import errorHandler from './middlewares/error.middleware.js'
 
 
 const app=express();
@@ -9,6 +8,6 @@ const app=express();
 app.use(express.json())
 
 app.use('/',urlRouter)
-
+app.use(errorHandler) 
 
 export default app;
