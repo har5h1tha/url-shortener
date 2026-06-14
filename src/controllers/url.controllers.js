@@ -37,6 +37,7 @@ export const shortenUrl = catchAsync(async (req, res) => {
 
 export const redirectUrl = catchAsync(async (req, res) => {
    const { code } = req.params
+   
 
     const entry = await urlModel.findOne({ shortCode: code })
 
