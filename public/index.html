@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Shortener</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; margin: 0; background: #f4f4f5;
+    }
+    .card {
+      background: white; padding: 2rem; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08); width: 100%; max-width: 480px;
+    }
+    h1 { margin: 0 0 1.5rem; font-size: 1.5rem; }
+    input {
+      width: 100%; padding: 0.7rem; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 1rem; margin-bottom: 0.75rem;
+    }
+    button {
+      width: 100%; padding: 0.7rem; background: #4f46e5; color: white;
+      border: none; border-radius: 8px; font-size: 1rem; cursor: pointer;
+    }
+    button:hover { background: #4338ca; }
+    button:disabled { background: #a5a5a5; cursor: not-allowed; }
+    .result {
+      margin-top: 1.25rem; padding: 1rem; background: #f0fdf4;
+      border-radius: 8px; word-break: break-all; display: none;
+    }
+    .result.show { display: block; }
+    .result a { color: #16a34a; font-weight: 600; text-decoration: none; }
+    .error {
+      margin-top: 1.25rem; padding: 1rem; background: #fef2f2;
+      color: #b91c1c; border-radius: 8px; display: none;
+    }
+    .error.show { display: block; }
+    .meta { font-size: 0.85rem; color: #666; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>URL Shortener</h1>
+
+    <input type="url" id="urlInput" placeholder="Paste your long URL here" required>
+    <input type="text" id="aliasInput" placeholder="Custom alias (optional)">
+    <input type="number" id="expiryInput" placeholder="Expires in days (optional)">
+
+    <button id="shortenBtn">Shorten</button>
+
+    <div class="result" id="result">
+      <strong>Short URL:</strong><br>
+      <a id="shortLink" href="#" target="_blank"></a>
+      <div class="meta" id="meta"></div>
+    </div>
+
+    <div class="error" id="error"></div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('shortenBtn')
+    const urlInput = document.getElementById('urlInput')
+    const aliasInput = document.getElementById('aliasInput')
+    const expiryInput = document.getElementById('expiryInput')
+    const result = document.getElementById('result')
+    const shortLink = document.getElementById('shortLink')
+    const meta = document.getElementById('meta')
+    const errorBox = document.getElementById('error')
+
+    btn.addEventListener('click', async () => {
+      const url = urlInput.value.trim()
+      const alias = aliasInput.value.trim()
+      const expiresInDays = expiryInput.value ? Number(expiryInput.value) : undefined
+
+      if (!url) return
+
+      result.classList.remove('show')
+      errorBox.classList.remove('show')
+      btn.disabled = true
+      btn.textContent = 'Shortening...'
+
+      try {
+        const res = await fetch('/shorten', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url,
+            ...(alias && { alias }),
+            ...(expiresInDays && { expiresInDays })
+          })
+        })
+
+        const data = await res.json()
+
+        if (!res.ok) {
+          errorBox.textContent = data.error
+          errorBox.classList.add('show')
+          return
+        }
+
+        shortLink.href = data.shortUrl
+        shortLink.textContent = data.shortUrl
+        meta.textContent = expiresInDays
+          ? `Expires in ${expiresInDays} day(s)`
+          : 'No expiration'
+        result.classList.add('show')
+
+      } catch (err) {
+        errorBox.textContent = 'Something went wrong. Try again.'
+        errorBox.classList.add('show')
+      } finally {
+        btn.disabled = false
+        btn.textContent = 'Shorten'
+      }
+    })
+  </script>
+</body>
+</html>
