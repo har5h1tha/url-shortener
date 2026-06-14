@@ -8,12 +8,24 @@ import AppError from '../utils/AppError.js'
 
 
 export const shortenUrl = catchAsync(async (req, res) => {
-  const { url } = req.body
-  const shortCode = nanoid(7)
+  const { url, alias, expiresInDays } = req.body
+
+  let shortCode = alias || nanoid(7)
+
+  if (alias) {
+    const existing = await urlModel.findOne({ shortCode: alias })
+    if (existing) throw new AppError('Alias already in use', 409)
+  }
+
+  let expiresAt = null
+  if (expiresInDays) {
+    expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
+  }
 
   await urlModel.create({ 
     shortCode, 
-    originalUrl: url 
+    originalUrl: url ,
+    expiresAt 
   })
 
   res.status(201).json({ 
@@ -23,17 +35,20 @@ export const shortenUrl = catchAsync(async (req, res) => {
 
 
 export const redirectUrl = catchAsync(async (req, res) => {
-  const { code } = req.params
+   const { code } = req.params
 
-  const entry = await urlModel.findOneAndUpdate(
-    { shortCode: code },
-    { $inc: { clicks: 1 } },
-    { returnDocument: 'after' }
-  )
+    const entry = await urlModel.findOne({ shortCode: code })
 
-  if (!entry) throw new AppError('Short URL not found', 404)
+    if (!entry) throw new AppError('Short URL not found', 404)
 
-  res.redirect(entry.originalUrl)
+    if (entry.expiresAt && entry.expiresAt < new Date()) {
+      throw new AppError('This link has expired', 410)
+    }
+
+    entry.clicks += 1
+    await entry.save()
+
+    res.redirect(entry.originalUrl)
 })
 
 export const getStats = catchAsync(async (req, res) => {
@@ -47,6 +62,7 @@ export const getStats = catchAsync(async (req, res) => {
     shortCode: entry.shortCode,
     originalUrl: entry.originalUrl,
     clicks: entry.clicks,
-    createdAt: entry.createdAt
+    createdAt: entry.createdAt,
+    expiresAt: entry.expiresAt
   })
 })
