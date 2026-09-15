@@ -7,14 +7,23 @@
   <style>
     * { box-sizing: border-box; font-family: system-ui, sans-serif; }
     body {
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; margin: 0; background: #f4f4f5;
+      min-height: 100vh; margin: 0; background: #f4f4f5; padding: 2rem 1rem;
+    }
+    .container {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+      align-items: start;
     }
     .card {
       background: white; padding: 2rem; border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08); width: 100%; max-width: 480px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08); width: 100%;
     }
     h1 { margin: 0 0 1.5rem; font-size: 1.5rem; }
+    h2 { margin: 0 0 1rem; font-size: 1.2rem; }
     input {
       width: 100%; padding: 0.7rem; border: 1px solid #ddd;
       border-radius: 8px; font-size: 1rem; margin-bottom: 0.75rem;
@@ -36,26 +45,92 @@
       color: #b91c1c; border-radius: 8px; display: none;
     }
     .error.show { display: block; }
+    .info {
+      margin-top: 1rem; padding: 0.9rem; background: #eef2ff;
+      color: #3730a3; border-radius: 8px; display: none;
+    }
+    .info.show { display: block; }
     .meta { font-size: 0.85rem; color: #666; margin-top: 0.5rem; }
+    .stats-grid {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 0.75rem;
+    }
+    .stat-box {
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      padding: 0.75rem;
+      background: #fafafa;
+    }
+    .stat-label { font-size: 0.8rem; color: #52525b; margin-bottom: 0.3rem; }
+    .stat-value { font-size: 1.05rem; font-weight: 600; color: #111827; }
+    .table-wrap { margin-top: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #e5e7eb; }
+    .bars { margin-top: 1rem; display: grid; gap: 0.5rem; }
+    .bar-row { display: grid; grid-template-columns: 84px 1fr 45px; gap: 0.5rem; align-items: center; }
+    .bar-track { background: #e5e7eb; border-radius: 6px; overflow: hidden; height: 10px; }
+    .bar-fill { background: #4f46e5; height: 10px; }
+    .analytics-panel { display: none; }
+    .analytics-panel.show { display: block; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>URL Shortener</h1>
+  <div class="container">
+    <div class="card">
+      <h1>URL Shortener</h1>
 
-    <input type="url" id="urlInput" placeholder="Paste your long URL here" required>
-    <input type="text" id="aliasInput" placeholder="Custom alias (optional)">
-    <input type="number" id="expiryInput" placeholder="Expires in days (optional)">
+      <input type="url" id="urlInput" placeholder="Paste your long URL here" required>
+      <input type="text" id="aliasInput" placeholder="Custom alias (optional)">
+      <input type="number" id="expiryInput" placeholder="Expires in days (optional)">
 
-    <button id="shortenBtn">Shorten</button>
+      <button id="shortenBtn">Shorten</button>
 
-    <div class="result" id="result">
-      <strong>Short URL:</strong><br>
-      <a id="shortLink" href="#" target="_blank"></a>
-      <div class="meta" id="meta"></div>
+      <div class="result" id="result">
+        <strong>Short URL:</strong><br>
+        <a id="shortLink" href="#" target="_blank"></a>
+        <div class="meta" id="meta"></div>
+      </div>
+
+      <div class="error" id="error"></div>
     </div>
 
-    <div class="error" id="error"></div>
+    <div class="card">
+      <h2>Analytics</h2>
+      <input type="text" id="analyticsInput" placeholder="Enter short URL or code (e.g. mygh)">
+      <button id="analyticsBtn">Load Analytics</button>
+
+      <div class="info" id="analyticsInfo"></div>
+      <div class="error" id="analyticsError"></div>
+
+      <div class="analytics-panel" id="analyticsPanel">
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Short Code</div>
+            <div class="stat-value" id="analyticsCode">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Total Clicks</div>
+            <div class="stat-value" id="analyticsTotal">0</div>
+          </div>
+        </div>
+
+        <div class="bars" id="dailyBars"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Clicks</th>
+              </tr>
+            </thead>
+            <tbody id="dailyTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -67,6 +142,15 @@
     const shortLink = document.getElementById('shortLink')
     const meta = document.getElementById('meta')
     const errorBox = document.getElementById('error')
+    const analyticsInput = document.getElementById('analyticsInput')
+    const analyticsBtn = document.getElementById('analyticsBtn')
+    const analyticsInfo = document.getElementById('analyticsInfo')
+    const analyticsError = document.getElementById('analyticsError')
+    const analyticsPanel = document.getElementById('analyticsPanel')
+    const analyticsCode = document.getElementById('analyticsCode')
+    const analyticsTotal = document.getElementById('analyticsTotal')
+    const dailyBars = document.getElementById('dailyBars')
+    const dailyTableBody = document.getElementById('dailyTableBody')
 
     btn.addEventListener('click', async () => {
       const url = urlInput.value.trim()
@@ -112,6 +196,108 @@
       } finally {
         btn.disabled = false
         btn.textContent = 'Shorten'
+      }
+    })
+
+    const extractCode = (value) => {
+      const input = value.trim()
+      if (!input) return ''
+
+      try {
+        const parsed = new URL(input)
+        return parsed.pathname.replace(/^\/+|\/+$/g, '')
+      } catch {
+        return input.replace(/^\/+|\/+$/g, '')
+      }
+    }
+
+    const clearAnalyticsMessages = () => {
+      analyticsInfo.classList.remove('show')
+      analyticsError.classList.remove('show')
+    }
+
+    const renderBars = (dailyClicks) => {
+      dailyBars.innerHTML = ''
+      const max = Math.max(...dailyClicks.map((d) => d.count), 1)
+
+      dailyClicks.forEach((item) => {
+        const row = document.createElement('div')
+        row.className = 'bar-row'
+
+        const label = document.createElement('div')
+        label.textContent = item.date
+
+        const track = document.createElement('div')
+        track.className = 'bar-track'
+        const fill = document.createElement('div')
+        fill.className = 'bar-fill'
+        fill.style.width = `${(item.count / max) * 100}%`
+        track.appendChild(fill)
+
+        const value = document.createElement('div')
+        value.textContent = item.count
+
+        row.appendChild(label)
+        row.appendChild(track)
+        row.appendChild(value)
+        dailyBars.appendChild(row)
+      })
+    }
+
+    const renderTable = (dailyClicks) => {
+      dailyTableBody.innerHTML = ''
+      dailyClicks.forEach((item) => {
+        const tr = document.createElement('tr')
+        const dateCell = document.createElement('td')
+        const countCell = document.createElement('td')
+        dateCell.textContent = item.date
+        countCell.textContent = item.count
+        tr.appendChild(dateCell)
+        tr.appendChild(countCell)
+        dailyTableBody.appendChild(tr)
+      })
+    }
+
+    analyticsBtn.addEventListener('click', async () => {
+      const code = extractCode(analyticsInput.value)
+      if (!code) return
+
+      clearAnalyticsMessages()
+      analyticsPanel.classList.remove('show')
+      analyticsBtn.disabled = true
+      analyticsBtn.textContent = 'Loading...'
+
+      try {
+        const res = await fetch(`/${encodeURIComponent(code)}/analytics`)
+        const data = await res.json()
+
+        if (!res.ok) {
+          analyticsError.textContent = data.error || 'Failed to load analytics.'
+          analyticsError.classList.add('show')
+          return
+        }
+
+        const dailyClicks = Array.isArray(data.dailyClicks) ? data.dailyClicks : []
+        analyticsCode.textContent = data.shortCode || code
+        analyticsTotal.textContent = Number(data.totalClicks || 0)
+
+        if (dailyClicks.length === 0) {
+          dailyBars.innerHTML = ''
+          dailyTableBody.innerHTML = ''
+          analyticsInfo.textContent = 'No click data available yet for this short URL.'
+          analyticsInfo.classList.add('show')
+        } else {
+          renderBars(dailyClicks)
+          renderTable(dailyClicks)
+        }
+
+        analyticsPanel.classList.add('show')
+      } catch (err) {
+        analyticsError.textContent = 'Something went wrong. Try again.'
+        analyticsError.classList.add('show')
+      } finally {
+        analyticsBtn.disabled = false
+        analyticsBtn.textContent = 'Load Analytics'
       }
     })
   </script>
