@@ -7,56 +7,191 @@
   <style>
     * { box-sizing: border-box; font-family: system-ui, sans-serif; }
     body {
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; margin: 0; background: #f4f4f5;
+      margin: 0;
+      min-height: 100vh;
+      background: #f4f4f5;
+      padding: 2rem 1rem;
+      color: #18181b;
+    }
+    .layout {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+      align-items: start;
     }
     .card {
-      background: white; padding: 2rem; border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08); width: 100%; max-width: 480px;
+      background: white;
+      padding: 1.25rem;
+      border-radius: 10px;
+      border: 1px solid #e4e4e7;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
     }
-    h1 { margin: 0 0 1.5rem; font-size: 1.5rem; }
+    h1, h2 { margin: 0 0 1rem; }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.1rem; }
+    .muted { color: #71717a; font-size: 0.9rem; margin: -0.5rem 0 1rem; }
     input {
-      width: 100%; padding: 0.7rem; border: 1px solid #ddd;
-      border-radius: 8px; font-size: 1rem; margin-bottom: 0.75rem;
+      width: 100%;
+      padding: 0.7rem;
+      border: 1px solid #d4d4d8;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+      background: #fff;
     }
     button {
-      width: 100%; padding: 0.7rem; background: #4f46e5; color: white;
-      border: none; border-radius: 8px; font-size: 1rem; cursor: pointer;
+      width: 100%;
+      padding: 0.7rem;
+      background: #27272a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
     }
-    button:hover { background: #4338ca; }
-    button:disabled { background: #a5a5a5; cursor: not-allowed; }
-    .result {
-      margin-top: 1.25rem; padding: 1rem; background: #f0fdf4;
-      border-radius: 8px; word-break: break-all; display: none;
+    button:hover { background: #18181b; }
+    button:disabled { background: #a1a1aa; cursor: not-allowed; }
+    .result, .error, .state {
+      margin-top: 1rem;
+      padding: 0.85rem;
+      border-radius: 8px;
+      display: none;
     }
+    .result { background: #f0fdf4; }
     .result.show { display: block; }
-    .result a { color: #16a34a; font-weight: 600; text-decoration: none; }
+    .result a { color: #15803d; font-weight: 600; text-decoration: none; word-break: break-all; }
     .error {
-      margin-top: 1.25rem; padding: 1rem; background: #fef2f2;
-      color: #b91c1c; border-radius: 8px; display: none;
+      background: #fef2f2;
+      color: #b91c1c;
     }
     .error.show { display: block; }
     .meta { font-size: 0.85rem; color: #666; margin-top: 0.5rem; }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .stat {
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      padding: 0.7rem;
+      background: #fafafa;
+    }
+    .stat-label { font-size: 0.78rem; color: #71717a; }
+    .stat-value { font-size: 1.1rem; font-weight: 600; margin-top: 0.25rem; }
+    .state {
+      background: #f4f4f5;
+      color: #52525b;
+    }
+    .state.show { display: block; }
+    .table-wrap {
+      margin-top: 0.85rem;
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+    }
+    .table-wrap.show { display: block; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid #e4e4e7;
+      text-align: left;
+    }
+    tr:last-child td { border-bottom: none; }
+    th { background: #fafafa; color: #3f3f46; font-weight: 600; }
+    .chart {
+      margin-top: 0.9rem;
+      display: none;
+      gap: 0.5rem;
+      flex-direction: column;
+    }
+    .chart.show { display: flex; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 32px;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.82rem;
+      color: #3f3f46;
+    }
+    .bar-track {
+      background: #e4e4e7;
+      border-radius: 999px;
+      overflow: hidden;
+      height: 8px;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #27272a;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>URL Shortener</h1>
+  <main class="layout">
+    <section class="card">
+      <h1>URL Shortener</h1>
 
-    <input type="url" id="urlInput" placeholder="Paste your long URL here" required>
-    <input type="text" id="aliasInput" placeholder="Custom alias (optional)">
-    <input type="number" id="expiryInput" placeholder="Expires in days (optional)">
+      <input type="url" id="urlInput" placeholder="Paste your long URL here" required>
+      <input type="text" id="aliasInput" placeholder="Custom alias (optional)">
+      <input type="number" id="expiryInput" placeholder="Expires in days (optional)">
 
-    <button id="shortenBtn">Shorten</button>
+      <button id="shortenBtn">Shorten</button>
 
-    <div class="result" id="result">
-      <strong>Short URL:</strong><br>
-      <a id="shortLink" href="#" target="_blank"></a>
-      <div class="meta" id="meta"></div>
-    </div>
+      <div class="result" id="result">
+        <strong>Short URL</strong><br>
+        <a id="shortLink" href="#" target="_blank"></a>
+        <div class="meta" id="meta"></div>
+      </div>
 
-    <div class="error" id="error"></div>
-  </div>
+      <div class="error" id="error"></div>
+    </section>
+
+    <section class="card">
+      <h2>Analytics</h2>
+      <p class="muted">Use an existing short code or short URL.</p>
+
+      <input type="text" id="analyticsCodeInput" placeholder="e.g. mygh or https://domain/mygh">
+      <button id="analyticsBtn">Load Analytics</button>
+
+      <div class="error" id="analyticsError"></div>
+      <div class="state" id="analyticsLoading">Loading analytics...</div>
+      <div class="state" id="analyticsEmpty">No click data available for this short URL yet.</div>
+
+      <div class="stats" id="analyticsStats" style="display:none;">
+        <div class="stat">
+          <div class="stat-label">Short code</div>
+          <div class="stat-value" id="statCode">-</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Total clicks</div>
+          <div class="stat-value" id="statClicks">0</div>
+        </div>
+      </div>
+
+      <div class="chart" id="dailyChart"></div>
+
+      <div class="table-wrap" id="dailyTableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Clicks</th>
+            </tr>
+          </thead>
+          <tbody id="dailyTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
   <script>
     const btn = document.getElementById('shortenBtn')
@@ -67,6 +202,69 @@
     const shortLink = document.getElementById('shortLink')
     const meta = document.getElementById('meta')
     const errorBox = document.getElementById('error')
+
+    const analyticsBtn = document.getElementById('analyticsBtn')
+    const analyticsCodeInput = document.getElementById('analyticsCodeInput')
+    const analyticsError = document.getElementById('analyticsError')
+    const analyticsLoading = document.getElementById('analyticsLoading')
+    const analyticsEmpty = document.getElementById('analyticsEmpty')
+    const analyticsStats = document.getElementById('analyticsStats')
+    const statCode = document.getElementById('statCode')
+    const statClicks = document.getElementById('statClicks')
+    const dailyTableWrap = document.getElementById('dailyTableWrap')
+    const dailyTableBody = document.getElementById('dailyTableBody')
+    const dailyChart = document.getElementById('dailyChart')
+
+    const hideAnalyticsStates = () => {
+      analyticsError.classList.remove('show')
+      analyticsLoading.classList.remove('show')
+      analyticsEmpty.classList.remove('show')
+    }
+
+    const resetAnalyticsData = () => {
+      analyticsStats.style.display = 'none'
+      dailyTableWrap.classList.remove('show')
+      dailyChart.classList.remove('show')
+      dailyTableBody.innerHTML = ''
+      dailyChart.innerHTML = ''
+    }
+
+    const extractCode = (value) => {
+      const input = value.trim()
+      if (!input) return ''
+      if (input.includes('/')) {
+        const clean = input.split('?')[0].split('#')[0]
+        const parts = clean.split('/').filter(Boolean)
+        return parts[parts.length - 1] || ''
+      }
+      return input
+    }
+
+    const renderDailyData = (dailyClicks) => {
+      if (!dailyClicks.length) return
+
+      const maxCount = Math.max(...dailyClicks.map((day) => day.count), 1)
+
+      for (const day of dailyClicks) {
+        const tr = document.createElement('tr')
+        tr.innerHTML = `<td>${day.date}</td><td>${day.count}</td>`
+        dailyTableBody.appendChild(tr)
+
+        const row = document.createElement('div')
+        row.className = 'bar-row'
+
+        const width = (day.count / maxCount) * 100
+        row.innerHTML = `
+          <span>${day.date}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div>
+          <span>${day.count}</span>
+        `
+        dailyChart.appendChild(row)
+      }
+
+      dailyTableWrap.classList.add('show')
+      dailyChart.classList.add('show')
+    }
 
     btn.addEventListener('click', async () => {
       const url = urlInput.value.trim()
@@ -112,6 +310,47 @@
       } finally {
         btn.disabled = false
         btn.textContent = 'Shorten'
+      }
+    })
+
+    analyticsBtn.addEventListener('click', async () => {
+      const code = extractCode(analyticsCodeInput.value)
+      if (!code) return
+
+      hideAnalyticsStates()
+      resetAnalyticsData()
+
+      analyticsBtn.disabled = true
+      analyticsBtn.textContent = 'Loading...'
+      analyticsLoading.classList.add('show')
+
+      try {
+        const res = await fetch(`/${encodeURIComponent(code)}/analytics`)
+        const data = await res.json()
+
+        if (!res.ok) {
+          analyticsError.textContent = data.error || 'Failed to load analytics.'
+          analyticsError.classList.add('show')
+          return
+        }
+
+        statCode.textContent = data.shortCode
+        statClicks.textContent = data.totalClicks
+        analyticsStats.style.display = 'grid'
+
+        if (!data.dailyClicks || data.dailyClicks.length === 0) {
+          analyticsEmpty.classList.add('show')
+          return
+        }
+
+        renderDailyData(data.dailyClicks)
+      } catch (err) {
+        analyticsError.textContent = 'Unable to load analytics right now. Try again.'
+        analyticsError.classList.add('show')
+      } finally {
+        analyticsLoading.classList.remove('show')
+        analyticsBtn.disabled = false
+        analyticsBtn.textContent = 'Load Analytics'
       }
     })
   </script>
